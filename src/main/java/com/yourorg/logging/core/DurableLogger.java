@@ -44,7 +44,7 @@ public class DurableLogger implements AutoCloseable {
         return new Logger() {
             @Override public void log(LogLevel level, String message) { log(level, message, Map.of()); }
             @Override public void log(LogLevel level, String message, Map<String, Object> fields) {
-                LogEntry e = LogEntry.builder().service(svc).level(level).message(message).fields(fields).timestamp(Instant.now()).build();
+                LogEntry e = LogEntry.builder().service(svc).level(level).message(message).fields(fields).timeStamp(Instant.now()).build();
                 try {
                     // WAL append (sync) -> enqueue
                     walWriter.append(e);
@@ -60,7 +60,7 @@ public class DurableLogger implements AutoCloseable {
                 }
             }
             @Override public void error(String message, Throwable t) {
-                LogEntry e = LogEntry.builder().service(svc).level(LogLevel.ERROR).message(message).stack(t == null ? null : getStack(t)).timestamp(Instant.now()).build();
+                LogEntry e = LogEntry.builder().service(svc).level(LogLevel.ERROR).message(message).stack(t == null ? null : getStack(t)).timeStamp(Instant.now()).build();
                 try {
                     walWriter.append(e);
                     queue.offer(e);

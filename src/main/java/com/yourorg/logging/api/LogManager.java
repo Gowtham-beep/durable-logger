@@ -8,7 +8,7 @@ public final class LogManager{
     private final com.yourorg.logging.core.DurableLogger logger;
 
     private LogManager(StorageAdapter adapter,com.yourorg.logging.core.DurableLogger logger){
-        this.adpter=adapter; this.logger=logger;
+        this.adapter=adapter; this.logger=logger;
     }
     public static synchronized void init(StorageAdapter adapter,com.yourorg.logging.core.DurableLogger logger){
         INSTANCE = new LogManager(adapter,logger);
@@ -16,7 +16,7 @@ public final class LogManager{
     public static LogManager get(){return  INSTANCE;}
 
     public Logger getLogger(Class<?> cls){
-        return logger.forClass(cls);
+        return logger.forCalss(cls);
     }
     public com.yourorg.logging.core.DurableLogger getCorelogger(){return logger;}
 

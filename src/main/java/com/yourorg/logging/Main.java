@@ -1,9 +1,9 @@
-package com.yourorg.durablelogger.sample;
+package com.yourorg.logging;
 
-import com.yourorg.durablelogger.api.LogManager;
-import com.yourorg.durablelogger.api.Logger;
-import com.yourorg.durablelogger.core.DurableLogger;
-import com.yourorg.durablelogger.storage.FileStorageAdapter;
+import com.yourorg.logging.api.LogManager;
+import com.yourorg.logging.api.Logger;
+import com.yourorg.logging.core.DurableLogger;
+import com.yourorg.logging.storage.FileStorageAdapter;
 
 import java.io.File;
 
@@ -20,7 +20,7 @@ public class Main {
         Logger logger = LogManager.get().getLogger(Main.class);
 
         logger.info("Application started");
-        logger.log(com.yourorg.durablelogger.api.LogLevel.ERROR, "An error occurred");
+        logger.log(com.yourorg.logging.api.LogLevel.ERROR, "An error occurred");
         try {
             int x = 1/0;
         } catch (Exception ex) {

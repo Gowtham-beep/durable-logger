@@ -48,14 +48,14 @@ public class FileStorageAdapter implements StorageAdapter {
                 try{
                     LogEntry e = om.readValue(line,LogEntry.class);
                     Instant ts = e.getTimestamp();
-                    if(!ts.isBefore(request.getForm()) && !ts.isAfter(request.getTo())){
+                    if(!ts.isBefore(request.getFrom()) && !ts.isAfter(request.getTo())){
                         if(request.getText() == null || e.getMessage().contains(request.getText())){
                             out.add(e);
                         }
                     }
                 }catch (Exception ex){}
             });
-        }catch(Exception ex){}throw  new RuntimeException(ex);
+        }catch(Exception ex){throw  new RuntimeException(ex);}
         return new QueryResult(out,out.size());
     }
 }

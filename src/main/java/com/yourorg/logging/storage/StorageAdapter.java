@@ -2,7 +2,7 @@ package com.yourorg.logging.storage;
 
 import com.yourorg.logging.api.LogEntry;
 import com.yourorg.logging.core.QueryRequest;
-import com.yourorg.logging.core.Queryresult;
+import com.yourorg.logging.core.QueryResult;
 
 import java.util.List;
 

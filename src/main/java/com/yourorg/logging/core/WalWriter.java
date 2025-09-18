@@ -1,7 +1,7 @@
 package com.yourorg.logging.core;
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yourorg.logging.api.LogEntry;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,7 +13,8 @@ import java.util.zip.CRC32;
 public class WalWriter implements AutoCloseable{
     private static final int MAGIC = 0X4C4F4701;
     private final FileChannel ch;
-    private final ObjectMapper om = new ObjectMapper();
+    private final mapper om = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());
     private final boolean fsyncOnAppend;
 
     public WalWriter(File file,boolean fsyncOnAppend) throws Exception{
