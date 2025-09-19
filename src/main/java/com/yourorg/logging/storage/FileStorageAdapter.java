@@ -19,43 +19,51 @@ public class FileStorageAdapter implements StorageAdapter {
     private final ObjectMapper om = new ObjectMapper();
     private BufferedWriter writer;
 
-    public FileStorageAdapter(File file){
-        this.file=file;
+    public FileStorageAdapter(File file) {
+        this.file = file;
     }
+
     @Override
-    public void start() throws Exception{
+    public void start() throws Exception {
         file.getParentFile().mkdirs();
-        writer = new BufferedWriter(new FileWriter(file,true));
+        writer = new BufferedWriter(new FileWriter(file, true));
     }
+
     @Override
-    public void stop() throws Exception{
-        if(writer!=null) writer.close();
+    public void stop() throws Exception {
+        if (writer != null) writer.close();
     }
+
     @Override
-    public synchronized void append(List<LogEntry> entries) throws Exception{
-        for(LogEntry e: entries){
+    public synchronized void append(List<LogEntry> entries) throws Exception {
+        for (LogEntry e : entries) {
             String json = om.writeValueAsString(e);
             writer.write(json);
             writer.newLine();
         }
         writer.flush();
     }
+
     @Override
-    public QueryResult query(QueryRequest request){
+    public QueryResult query(QueryRequest request) {
         List<LogEntry> out = new ArrayList<>();
-        try(Stream<String> lines = Files.lines(file.toPath())){
-            lines.forEach(line->{
-                try{
-                    LogEntry e = om.readValue(line,LogEntry.class);
-                    Instant ts = e.getTimestamp();
-                    if(!ts.isBefore(request.getFrom()) && !ts.isAfter(request.getTo())){
-                        if(request.getText() == null || e.getMessage().contains(request.getText())){
+        try (Stream<String> lines = Files.lines(file.toPath())) {
+            lines.forEach(line -> {
+                try {
+                    LogEntry e = om.readValue(line, LogEntry.class);
+                    Instant ts = Instant.ofEpochMilli(e.getTimestamp()); // ✅ fixed
+                    if (!ts.isBefore(request.getFrom()) && !ts.isAfter(request.getTo())) {
+                        if (request.getText() == null || e.getMessage().contains(request.getText())) {
                             out.add(e);
                         }
                     }
-                }catch (Exception ex){}
+                } catch (Exception ex) {
+                    // log/ignore parse error
+                }
             });
-        }catch(Exception ex){throw  new RuntimeException(ex);}
-        return new QueryResult(out,out.size());
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+        return new QueryResult(out, out.size());
     }
 }

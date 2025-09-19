@@ -16,7 +16,7 @@ public final class LogManager{
     public static LogManager get(){return  INSTANCE;}
 
     public Logger getLogger(Class<?> cls){
-        return logger.forCalss(cls);
+        return logger.forClass(cls);
     }
     public com.yourorg.logging.core.DurableLogger getCorelogger(){return logger;}
 

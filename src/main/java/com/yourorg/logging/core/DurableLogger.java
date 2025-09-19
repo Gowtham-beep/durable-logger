@@ -6,7 +6,6 @@ import com.yourorg.logging.api.Logger;
 import com.yourorg.logging.storage.StorageAdapter;
 
 import java.io.File;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,37 +38,49 @@ public class DurableLogger implements AutoCloseable {
         this.flusherThread = new Thread(this::flusherLoop, "durable-logger-flusher");
         flusherThread.start();
     }
-    public Logger forCalss(Class<?> cls){
+    public Logger forClass(Class<?> cls) {
         String svc = cls.getName();
         return new Logger() {
             @Override public void log(LogLevel level, String message) { log(level, message, Map.of()); }
             @Override public void log(LogLevel level, String message, Map<String, Object> fields) {
-                LogEntry e = LogEntry.builder().service(svc).level(level).message(message).fields(fields).timeStamp(Instant.now()).build();
+                LogEntry e = LogEntry.builder()
+                        .service(svc)
+                        .level(level)
+                        .message(message)
+                        .fields(fields)
+                        .timestamp(System.currentTimeMillis())   // ✅ epoch millis
+                        .build();
                 try {
-                    // WAL append (sync) -> enqueue
                     walWriter.append(e);
                     boolean offered = queue.offer(e);
                     if (!offered) {
-                        // queue full: apply drop policy - drop oldest
-                        queue.poll();
+                        queue.poll(); // drop oldest
                         queue.offer(e);
                     }
                 } catch (Exception ex) {
-                    // failure in WAL append: degrade gracefully - print to stderr and continue
                     System.err.println("WAL append failed: " + ex.getMessage());
                 }
             }
             @Override public void error(String message, Throwable t) {
-                LogEntry e = LogEntry.builder().service(svc).level(LogLevel.ERROR).message(message).stack(t == null ? null : getStack(t)).timeStamp(Instant.now()).build();
+                LogEntry e = LogEntry.builder()
+                        .service(svc)
+                        .level(LogLevel.ERROR)
+                        .message(message)
+                        .stack(t == null ? null : getStack(t))
+                        .timestamp(System.currentTimeMillis())   // ✅ epoch millis
+                        .build();
                 try {
                     walWriter.append(e);
                     queue.offer(e);
-                } catch (Exception ex) { System.err.println("WAL append failed: " + ex.getMessage()); }
+                } catch (Exception ex) {
+                    System.err.println("WAL append failed: " + ex.getMessage());
+                }
             }
             @Override public void info(String message) { log(LogLevel.INFO, message); }
             @Override public void warn(String message) { log(LogLevel.WARN, message); }
         };
     }
+
     private static String getStack(Throwable t){
         StringBuilder sb = new StringBuilder();
         sb.append(t.toString()).append("\n");
