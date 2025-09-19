@@ -51,19 +51,36 @@ public class FileStorageAdapter implements StorageAdapter {
             lines.forEach(line -> {
                 try {
                     LogEntry e = om.readValue(line, LogEntry.class);
-                    Instant ts = Instant.ofEpochMilli(e.getTimestamp()); // ✅ fixed
-                    if (!ts.isBefore(request.getFrom()) && !ts.isAfter(request.getTo())) {
-                        if (request.getText() == null || e.getMessage().contains(request.getText())) {
-                            out.add(e);
-                        }
+                    Instant ts = Instant.ofEpochMilli(e.getTimestamp());
+
+                    // --- time filter ---
+                    if (ts.isBefore(request.getFrom()) || ts.isAfter(request.getTo())) {
+                        return; // skip
                     }
+
+                    // --- level filter ---
+                    if (request.getLevel().isPresent() && e.getLevel() != request.getLevel().get()) {
+                        return; // skip
+                    }
+
+                    // --- text filter (case-insensitive substring) ---
+                    if (request.getText() != null &&
+                            !e.getMessage().toLowerCase().contains(request.getText().toLowerCase())) {
+                        return; // skip
+                    }
+
+                    out.add(e);
                 } catch (Exception ex) {
-                    // log/ignore parse error
+                    // ignore bad line
                 }
             });
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
-        return new QueryResult(out, out.size());
+
+        // --- apply limit ---
+        int max = Math.min(request.getLimit(), out.size());
+        return new QueryResult(out.subList(0, max), out.size());
     }
+
 }
