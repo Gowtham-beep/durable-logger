@@ -1,6 +1,8 @@
 package com.yourorg.logging.api;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 import java.util.Map;
@@ -16,6 +18,27 @@ public final class LogEntry {
     private final Map<String, Object> fields;
     private final String traceId;
     private final String stack;
+
+    @JsonCreator
+    public LogEntry(
+            @JsonProperty("uuid") String uuid,
+            @JsonProperty("timestamp") long timestamp,
+            @JsonProperty("level") LogLevel level,
+            @JsonProperty("service") String service,
+            @JsonProperty("message") String message,
+            @JsonProperty("fields") Map<String,Object> fields,
+            @JsonProperty("traceId") String traceId,
+            @JsonProperty("stack") String stack
+    ) {
+        this.uuid = uuid;
+        this.timestamp = timestamp;
+        this.level = level;
+        this.service = service;
+        this.message = message;
+        this.fields = fields;
+        this.traceId = traceId;
+        this.stack = stack;
+    }
 
     private LogEntry(Builder b) {
         this.uuid = b.uuid;
