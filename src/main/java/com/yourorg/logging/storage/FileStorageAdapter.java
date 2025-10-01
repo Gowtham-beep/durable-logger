@@ -42,7 +42,21 @@ public class FileStorageAdapter implements StorageAdapter {
             writer.newLine();
         }
         writer.flush();
+        //check rotation
+        long sizeMB = Files.size(file.toPath())/(1024*1024);
+        if(sizeMB>config.retention.rotateSizeMB){
+            rotate();
+        }
     }
+
+    private void rotate() throws Exception {
+        writer.close();
+        String rotatedName = file.getPath() + "." + System.currentTimeMillis();
+        Files.move(file.toPath(), Path.of(rotatedName));
+        writer = new BufferedWriter(new FileWriter(file, true));
+        System.out.println("Rotated log file to: " + rotatedName);
+    }
+
 
     @Override
     public QueryResult query(QueryRequest request) {
