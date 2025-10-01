@@ -5,23 +5,33 @@ import com.yourorg.logging.api.Logger;
 import com.yourorg.logging.config.LoggerConfig;
 import com.yourorg.logging.config.LoggerConfigLoader;
 import com.yourorg.logging.core.DurableLogger;
+import com.yourorg.logging.core.QueryRequest;
+import com.yourorg.logging.core.QueryResult;
 import com.yourorg.logging.storage.FileStorageAdapter;
+import com.yourorg.logging.storage.StorageAdapter;
 
 import java.io.File;
 
 public class DurableLoggerFactory {
 
     private static DurableLogger durable;
+    private static StorageAdapter adapter;
 
-    public static void init(String configPath) throws Exception{
-        LoggerConfig cfg = LoggerConfigLoader.load(configPath);
+    /**
+     * Initialize logger using config file.
+     * If configPath is null/empty, load logger.yml from classpath (resources).
+     */
+    public static void init(String configPath) throws Exception {
+        LoggerConfig cfg = (configPath == null || configPath.isEmpty())
+                ? LoggerConfigLoader.loadFromClasspath("logger.yml")
+                : LoggerConfigLoader.load(configPath);
 
-        //pick storage adapter
-        var adapter = switch (cfg.storage.type){
-            case "file"-> new FileStorageAdapter(new File(cfg.storage.file.path));
-            // case "postgres" -> new PostgresStorageAdapter(cfg.storage.postgres)
-            // case "kafka" -> new KafkaStorageAdapter(cfg.storage.kafka)
-            default -> throw new IllegalArgumentException("Unsupported storage type");
+        // pick storage adapter
+        adapter = switch (cfg.storage.type) {
+            case "file" -> new FileStorageAdapter(new File(cfg.storage.file.path));
+            // case "postgres" -> new PostgresStorageAdapter(cfg.storage.postgres);
+            // case "kafka" -> new KafkaStorageAdapter(cfg.storage.kafka);
+            default -> throw new IllegalArgumentException("Unsupported storage type: " + cfg.storage.type);
         };
 
         durable = new DurableLogger(
@@ -33,12 +43,31 @@ public class DurableLoggerFactory {
                 cfg.maxBatchSize,
                 cfg.maxBatchMillis
         );
-        LogManager.init(adapter,durable);
+
+        LogManager.init(adapter, durable);
     }
-    public static Logger getLogger(Class<?> cls){
-        if(durable == null) {
+
+    /** Get logger for a class */
+    public static Logger getLogger(Class<?> cls) {
+        if (durable == null) {
             throw new IllegalStateException("Logger not initialized. Call init() first.");
         }
         return LogManager.get().getLogger(cls);
+    }
+
+    /** Query logs */
+    public static QueryResult durableQuery(QueryRequest req) {
+        if (adapter == null) {
+            throw new IllegalStateException("Logger not initialized. Call init() first.");
+        }
+        return adapter.query(req);
+    }
+
+    /** Close logger gracefully */
+    public static void close() throws Exception {
+        if (durable != null) {
+            durable.close();
+            durable = null;
+        }
     }
 }

@@ -1,0 +1,27 @@
+
+  serviceName: "durable-logger-demo"
+
+  # Default log level
+  level: INFO
+
+  # Internal batching/queue settings
+  queueCapacity: 10000
+  maxBatchSize: 500
+  maxBatchMillis: 200
+  fsyncOnWalAppend: true
+
+  # WAL configuration
+  wal:
+    path: "data/wal.log"
+    checkpoint: "data/wal.check"
+
+  # Storage backend
+  storage:
+    type: file         # (file | postgres | kafka | s3)
+    file:
+      path: "data/store.log"
+
+  # Retention policy (for file adapter only, future enhancement)
+  retention:
+    rotateSizeMB: 100  # rotate logs after 100 MB
+    maxDays: 7         # keep logs for 7 days
