@@ -56,7 +56,7 @@ public class Main {
         QueryRequest req = new QueryRequest(
                 Instant.now().minusSeconds(300),
                 Instant.now(),
-                Optional.of(LogLevel.ERROR),  // level filter
+                Optional.of(LogLevel.INFO),  // level filter
                 null,                         // no text filter
                 200
         );

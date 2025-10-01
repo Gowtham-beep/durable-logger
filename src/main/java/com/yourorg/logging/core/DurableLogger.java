@@ -86,7 +86,8 @@ public class DurableLogger implements AutoCloseable {
         sb.append(t.toString()).append("\n");
         for (StackTraceElement s: t.getStackTrace()) sb.append("\tat ").append(s.toString()).append("\n");
         return sb.toString();
-    }private void flusherLoop(){
+    }
+    private void flusherLoop(){
         List<LogEntry> batch = new ArrayList<>(maxBatchSize);
         while(running) {
             try {
