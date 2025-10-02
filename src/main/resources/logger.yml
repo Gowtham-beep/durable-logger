@@ -23,5 +23,5 @@
 
   # Retention policy (for file adapter only, future enhancement)
   retention:
-    rotateSizeMB: 100  # rotate logs after 100 MB
+    rotateSizeMB: 0.107  # rotate logs after ~110 KB
     maxDays: 7         # keep logs for 7 days

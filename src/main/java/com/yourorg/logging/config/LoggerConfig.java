@@ -43,7 +43,7 @@ public class LoggerConfig {
     }
 
     public static class Retention {
-        public int rotateSizeMB;
+        public double rotateSizeMB;
         public int maxDays;
     }
 }

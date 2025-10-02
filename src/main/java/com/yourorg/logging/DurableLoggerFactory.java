@@ -28,7 +28,7 @@ public class DurableLoggerFactory {
 
         // pick storage adapter
         adapter = switch (cfg.storage.type) {
-            case "file" -> new FileStorageAdapter(new File(cfg.storage.file.path));
+            case "file" -> new FileStorageAdapter(new File(cfg.storage.file.path),cfg.retention);
             // case "postgres" -> new PostgresStorageAdapter(cfg.storage.postgres);
             // case "kafka" -> new KafkaStorageAdapter(cfg.storage.kafka);
             default -> throw new IllegalArgumentException("Unsupported storage type: " + cfg.storage.type);

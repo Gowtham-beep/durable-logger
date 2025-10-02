@@ -2,6 +2,7 @@ package com.yourorg.logging.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yourorg.logging.api.LogEntry;
+import com.yourorg.logging.config.LoggerConfig;
 import com.yourorg.logging.core.QueryRequest;
 import com.yourorg.logging.core.QueryResult;
 
@@ -9,6 +10,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +20,11 @@ public class FileStorageAdapter implements StorageAdapter {
     private final File file;
     private final ObjectMapper om = new ObjectMapper();
     private BufferedWriter writer;
+    private final LoggerConfig.Retention retention;
 
-    public FileStorageAdapter(File file) {
+    public FileStorageAdapter(File file,LoggerConfig.Retention retention) {
         this.file = file;
+        this.retention=retention;
     }
 
     @Override
@@ -43,9 +47,11 @@ public class FileStorageAdapter implements StorageAdapter {
         }
         writer.flush();
         //check rotation
-        long sizeMB = Files.size(file.toPath())/(1024*1024);
-        if(sizeMB>config.retention.rotateSizeMB){
-            rotate();
+        if (retention != null && retention.rotateSizeMB > 0) {
+            double sizeMB = Files.size(file.toPath()) / (1024.0 * 1024.0);
+            if (sizeMB > retention.rotateSizeMB) {
+                rotate();
+            }
         }
     }
 
