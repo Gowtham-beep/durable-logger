@@ -11,6 +11,14 @@
     <url>http://maven.apache.org</url>
 
     <dependencies>
+        <!-- JUnit -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- JSON (jackson) -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -55,9 +63,15 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>17</source>   <!-- or 11 / 21 depending on your JDK -->
-                    <target>17</target>
+                    <source>21</source>   <!-- or 11 / 21 depending on your JDK -->
+                    <target>21</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M7</version>
             </plugin>
         </plugins>
     </build>

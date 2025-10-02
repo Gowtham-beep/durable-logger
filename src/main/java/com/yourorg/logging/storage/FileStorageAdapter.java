@@ -67,40 +67,55 @@ public class FileStorageAdapter implements StorageAdapter {
     @Override
     public QueryResult query(QueryRequest request) {
         List<LogEntry> out = new ArrayList<>();
-        try (Stream<String> lines = Files.lines(file.toPath())) {
-            lines.forEach(line -> {
-                try {
-                    LogEntry e = om.readValue(line, LogEntry.class);
-                    Instant ts = Instant.ofEpochMilli(e.getTimestamp());
+        try {
+            // Find all candidate files: store.log + rotated ones
+            File dir = file.getParentFile();
+            String baseName = file.getName();
 
-                    // --- time filter ---
-                    if (ts.isBefore(request.getFrom()) || ts.isAfter(request.getTo())) {
-                        return; // skip
+            File[] candidates = dir.listFiles((d, name) -> name.startsWith(baseName));
+            if (candidates != null) {
+                for (File f : candidates) {
+                    try (Stream<String> lines = Files.lines(f.toPath())) {
+                        lines.forEach(line -> {
+                            try {
+                                LogEntry e = om.readValue(line, LogEntry.class);
+                                Instant ts = Instant.ofEpochMilli(e.getTimestamp());
+
+                                // --- time filter ---
+                                if (ts.isBefore(request.getFrom()) || ts.isAfter(request.getTo())) {
+                                    return; // skip
+                                }
+
+                                // --- level filter ---
+                                if (request.getLevel().isPresent() && e.getLevel() != request.getLevel().get()) {
+                                    return; // skip
+                                }
+
+                                // --- text filter ---
+                                if (request.getText() != null &&
+                                        !e.getMessage().toLowerCase().contains(request.getText().toLowerCase())) {
+                                    return; // skip
+                                }
+
+                                out.add(e);
+                            } catch (Exception ignored) {
+                                // skip bad line
+                            }
+                        });
                     }
-
-                    // --- level filter ---
-                    if (request.getLevel().isPresent() && e.getLevel() != request.getLevel().get()) {
-                        return; // skip
-                    }
-
-                    // --- text filter (case-insensitive substring) ---
-                    if (request.getText() != null &&
-                            !e.getMessage().toLowerCase().contains(request.getText().toLowerCase())) {
-                        return; // skip
-                    }
-
-                    out.add(e);
-                } catch (Exception ex) {
-                    // ignore bad line
                 }
-            });
+            }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
 
-        // --- apply limit ---
+        // Sort by timestamp so results are chronological
+        out.sort((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+
+        // Apply limit
         int max = Math.min(request.getLimit(), out.size());
         return new QueryResult(out.subList(0, max), out.size());
     }
+
 
 }
