@@ -1,176 +1,142 @@
 
 
-````markdown
-# Durable Logger (MVP)
+## 🧾 **README.md (Release Version)**
 
-A lightweight, durable logging library for Java that guarantees **at-least-once delivery** of log events.  
-It uses a **Write-Ahead Log (WAL)** with checkpoints to survive crashes and provides a simple query API.
+````markdown
+# 🪶 Durable Logger — A Java At-Least-Once Persistent Logging Library
+
+> “Started messy, stayed curious, built durable.”
+
+**Durable Logger** is a lightweight, modular, fault-tolerant logging library built in pure Java.  
+It guarantees **at-least-once log persistence** even during application crashes — using an internal **Write-Ahead Log (WAL)** and background flush mechanism.
+
+This project was built from scratch to explore **systems-level durability**, **concurrency**, and **developer-friendly design** — now released as **Phase 1** (MVP).
 
 ---
 
-## ⚡ Quickstart
+## 🚀 Features
 
-Add this to your `Main.java`:
+✅ **Write-Ahead Log (WAL)** — crash-safe persistence.  
+✅ **At-Least-Once Delivery** — replay unflushed logs after restart.  
+✅ **Pluggable Storage Adapters** — File (✅), PostgreSQL, Kafka, S3 (coming soon).  
+✅ **Query API** — filter logs by time, level, or message text.  
+✅ **Auto-Rotation + Retention** — rotate logs by size or age.  
+✅ **YAML / Builder Configuration** — flexible initialization.  
+✅ **Minimal Dependencies, High Performance.**
 
-```java
-import com.yourorg.logging.api.*;
-import com.yourorg.logging.core.*;
-import com.yourorg.logging.storage.*;
+---
 
-import java.io.File;
-import java.time.Instant;
-import java.util.Optional;
+## ⚡️ Quick Start
 
-public class Main {
-    public static void main(String[] args) throws Exception {
-        var adapter = new FileStorageAdapter(new File("data/store.log"));
-        var durable = new DurableLogger(adapter,
-                new File("data/wal.log"),
-                new File("data/wal.check"),
-                10000, true, 500, 200);
+### 🧩 Add Dependency
 
-        LogManager.init(adapter, durable);
-        Logger log = LogManager.get().getLogger(Main.class);
-
-        log.info("Hello durable logger!");
-        log.error("Something went wrong", new RuntimeException("oops"));
-
-        QueryRequest req = new QueryRequest(
-                Instant.now().minusSeconds(60),
-                Instant.now(),
-                Optional.of(LogLevel.ERROR), null, 100);
-
-        var result = adapter.query(req);
-        result.getEntries().forEach(e ->
-            System.out.println(Instant.ofEpochMilli(e.getTimestamp())
-                + " [" + e.getLevel() + "] " + e.getMessage())
-        );
-
-        durable.close();
-    }
-}
+```xml
+<dependency>
+  <groupId>com.yourorg.logging</groupId>
+  <artifactId>core-logger</artifactId>
+  <version>1.0.0</version>
+</dependency>
 ````
 
-Run with Maven:
+Add the GitHub Packages repository to your `pom.xml`:
 
-```bash
-mvn clean compile exec:java -Dexec.mainClass="com.yourorg.logging.Main"
+```xml
+<repositories>
+  <repository>
+    <id>github</id>
+    <url>https://maven.pkg.github.com/your-github-username/durable-logger</url>
+  </repository>
+</repositories>
 ```
 
 ---
 
-## ✨ Features (MVP)
-
-* **Log API** with levels: `INFO`, `WARN`, `ERROR`, `DEBUG`
-* **Durability**: logs are first written to a WAL before flushing to the final store
-* **Crash recovery**: unflushed logs are replayed on restart
-* **Checkpointing**: tracks last successfully flushed log
-* **File-based storage** (`store.log`) using JSON lines
-* **Queryable**: search logs by time range, text, and log level
-* **At-least-once delivery** semantics
-* **Simple API** via `LogManager.getLogger(Class<?>)`
-
----
-
-## 📂 Project Structure
-
-```
-src/main/java/com/yourorg/logging/
- ├── api/        # LogEntry, LogLevel, Logger, LogManager
- ├── core/       # DurableLogger, WalWriter, WalReader, Checkpoint, QueryRequest/Result
- ├── storage/    # FileStorageAdapter (JSON-line store)
- └── Main.java   # Demo entrypoint
-```
-
----
-
-## 🚀 Usage
-
-### 1. Initialize logger
+### ⚙️ Initialize the Logger
 
 ```java
-File wal = new File("data/wal.log");
-File checkpoint = new File("data/wal.check");
-File store = new File("data/store.log");
+DurableLoggerFactory.init("src/main/resources/logger.yml");
+Logger logger = DurableLoggerFactory.getLogger(MyService.class);
 
-var adapter = new FileStorageAdapter(store);
-var durable = new DurableLogger(adapter, wal, checkpoint,
-        10000,   // queue capacity
-        true,    // fsync on WAL append
-        500,     // max batch size
-        200);    // max batch millis
-
-LogManager.init(adapter, durable);
-Logger logger = LogManager.get().getLogger(MyService.class);
+logger.info("Service started successfully");
+logger.warn("Low memory warning");
+logger.error("Unexpected error", new RuntimeException("test failure"));
 ```
 
-### 2. Write logs
+---
 
-```java
-logger.info("Service started");
-logger.warn("This is a warning");
-logger.error("Something failed", new RuntimeException("oops"));
-```
-
-### 3. Query logs
+### 🔍 Query Your Logs
 
 ```java
 QueryRequest req = new QueryRequest(
-        Instant.now().minusSeconds(300),
-        Instant.now(),
-        Optional.of(LogLevel.ERROR), // filter by level
-        null,                        // no text filter
-        200                          // limit
+    Instant.now().minusSeconds(600),
+    Instant.now(),
+    Optional.of(LogLevel.ERROR),
+    "exception",
+    200
 );
 
-QueryResult result = adapter.query(req);
-result.getEntries().forEach(e ->
-    System.out.println(Instant.ofEpochMilli(e.getTimestamp())
-            + " [" + e.getLevel() + "] " + e.getMessage())
-);
+QueryResult result = DurableLoggerFactory.durableQuery(req);
+System.out.println("Found " + result.getEntries().size() + " error logs");
 ```
 
 ---
 
-## 🧪 Demo
+## 🧾 Sample Configuration (`logger.yml`)
 
-Run the demo `Main` class:
+```yaml
+serviceName: "durable-logger-demo"
+level: INFO
+
+queueCapacity: 10000
+maxBatchSize: 500
+maxBatchMillis: 200
+fsyncOnWalAppend: true
+
+wal:
+  path: "data/wal.log"
+  checkpoint: "data/wal.check"
+
+storage:
+  type: file
+  file:
+    path: "data/store.log"
+
+retention:
+  rotateSizeMB: 100
+  maxDays: 7
+```
+
+---
+
+## 🧪 Testing & Verification
 
 ```bash
-# normal run (writes + queries)
-mvn clean compile exec:java -Dexec.mainClass="com.yourorg.logging.Main"
-
-# query-only run
-mvn -q compile exec:java -Dexec.mainClass="com.yourorg.logging.Main" -Dexec.args="query"
+mvn clean test
 ```
 
-Artifacts produced:
+Tests include:
 
-* `data/wal.log` → Write-Ahead Log (binary)
-* `data/wal.check` → Checkpoint file
-* `data/store.log` → Final durable log store (JSON lines)
+* WAL replay verification
+* File rotation and retention
+* Query across rotated logs
 
----
-
-## 🔮 Future Enhancements
-
-* **Log rotation** (e.g., roll logs after 100MB or 2GB)
-* **Retention policies** (delete/archive logs older than X days)
-* **Multiple adapters** (PostgreSQL, Elasticsearch, Kafka)
-* **Cross-service tracing** (traceId propagation across microservices)
-* **Middleware integration** (HTTP request/response logging, e.g. Spring Boot filter)
-* **Better query engine**: pagination, advanced filters, full-text search
-* **Performance tuning**: async I/O, memory-mapped WAL, backpressure policies
-* **Monitoring hooks**: metrics (queue depth, flush latency)
+✅ All tests passing — durable writes and replays confirmed.
 
 ---
 
-## ⚡ At-least-once Guarantee
+## ❤️ A Note from the Author
 
-* Logs are **always written to WAL before ack**.
-* On crash, unflushed WAL entries are replayed on restart.
-* Guarantees no loss, but duplicates are possible (consumer must be idempotent).
+This project started as a small experiment while I was still figuring out Java internals —
+I wanted to understand how reliability systems like databases and Kafka guarantee durability.
+It’s far from perfect, but it works — and it’s just the beginning.
+
+If this inspires you or helps you build something reliable,
+please ⭐ **star the repo** and share your thoughts — it means a lot. 🙏
 
 ---
 
+**Author:** Gowtham N
+**License:** MIT
+**Repository:** [https://github.com/Gowtham-beep/durable-logger.git](https://github.com/Gowtham-beep/durable-logger.git)
 
+---
