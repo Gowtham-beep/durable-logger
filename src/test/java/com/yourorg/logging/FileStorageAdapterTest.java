@@ -7,6 +7,7 @@ import com.yourorg.logging.core.QueryRequest;
 import com.yourorg.logging.core.QueryResult;
 import com.yourorg.logging.storage.FileStorageAdapter;
 import org.junit.jupiter.api.*;
+import com.yourorg.logging.errors.DefaultErrorHandler;
 
 import java.io.File;
 import java.time.Instant;
@@ -26,7 +27,8 @@ public class FileStorageAdapterTest {
         LoggerConfig.Retention retention = new LoggerConfig.Retention();
         retention.rotateSizeMB = 10; // big enough not to rotate in test
         retention.maxDays = 7;
-        adapter = new FileStorageAdapter(file, retention);
+        adapter = new FileStorageAdapter(file, retention, new DefaultErrorHandler());
+
         adapter.start();
     }
 
@@ -65,7 +67,7 @@ public class FileStorageAdapterTest {
 
         File file = new File("target/test-rotate.log");
         file.delete();
-        FileStorageAdapter adapter = new FileStorageAdapter(file, retention);
+        FileStorageAdapter adapter = new FileStorageAdapter(file, retention,new DefaultErrorHandler());
         adapter.start();
 
         // Write enough logs to trigger rotation

@@ -3,6 +3,8 @@ package com.yourorg.logging.core;
 import com.yourorg.logging.api.LogEntry;
 import com.yourorg.logging.api.LogLevel;
 import com.yourorg.logging.api.Logger;
+import com.yourorg.logging.errors.DefaultErrorHandler;
+import com.yourorg.logging.errors.ErrorHandler;
 import com.yourorg.logging.storage.StorageAdapter;
 
 import java.io.File;
@@ -20,6 +22,7 @@ public class DurableLogger implements AutoCloseable {
     private final long maxBatchMillis;
     private final int maxBatchSize;
     private volatile boolean running = true;
+    private final ErrorHandler errorHandler= new DefaultErrorHandler();
 
 
     public DurableLogger(StorageAdapter adapter, File walFile, File checkpointFile, int queueCapacity,
@@ -48,7 +51,7 @@ public class DurableLogger implements AutoCloseable {
                         .level(level)
                         .message(message)
                         .fields(fields)
-                        .timestamp(System.currentTimeMillis())   // ✅ epoch millis
+                        .timestamp(System.currentTimeMillis())
                         .build();
                 try {
                     walWriter.append(e);
@@ -58,7 +61,10 @@ public class DurableLogger implements AutoCloseable {
                         queue.offer(e);
                     }
                 } catch (Exception ex) {
-                    System.err.println("WAL append failed: " + ex.getMessage());
+                    try {
+                        errorHandler.onWriteFailure(ex, e);
+                    } catch (Exception ignore){}
+
                 }
             }
             @Override public void error(String message, Throwable t) {
@@ -67,13 +73,15 @@ public class DurableLogger implements AutoCloseable {
                         .level(LogLevel.ERROR)
                         .message(message)
                         .stack(t == null ? null : getStack(t))
-                        .timestamp(System.currentTimeMillis())   // ✅ epoch millis
+                        .timestamp(System.currentTimeMillis())
                         .build();
                 try {
                     walWriter.append(e);
                     queue.offer(e);
                 } catch (Exception ex) {
-                    System.err.println("WAL append failed: " + ex.getMessage());
+                    try {
+                        errorHandler.onWriteFailure(ex, e);
+                    } catch (Exception ignore){}
                 }
             }
             @Override public void info(String message) { log(LogLevel.INFO, message); }
@@ -107,12 +115,17 @@ public class DurableLogger implements AutoCloseable {
                         batch.clear();
                     } catch (Exception ex) {
                         // storage failure: backoff
-                        System.err.println("Storage append failed: " + ex.getMessage());
-                        Thread.sleep(1000); // backoff simple
+                        try {
+                            errorHandler.onInternalError(ex,"Fail to Flush ");
+                            Thread.sleep(1000); // backoff simple
+                        } catch (Exception ignore){}
+
                     }
                 }
             } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
+                try {
+                    errorHandler.onInternalError(ie,"Fail to Flush ");
+                } catch (Exception ignore){}
             }
         }
         // flush remaining before exit

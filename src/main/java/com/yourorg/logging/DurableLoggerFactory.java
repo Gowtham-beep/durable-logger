@@ -7,6 +7,8 @@ import com.yourorg.logging.config.LoggerConfigLoader;
 import com.yourorg.logging.core.DurableLogger;
 import com.yourorg.logging.core.QueryRequest;
 import com.yourorg.logging.core.QueryResult;
+import com.yourorg.logging.errors.DefaultErrorHandler;
+import com.yourorg.logging.errors.ErrorHandler;
 import com.yourorg.logging.storage.FileStorageAdapter;
 import com.yourorg.logging.storage.StorageAdapter;
 
@@ -26,9 +28,14 @@ public class DurableLoggerFactory {
                 ? LoggerConfigLoader.loadFromClasspath("logger.yml")
                 : LoggerConfigLoader.load(configPath);
 
+
+        cfg.validate();
+
+        ErrorHandler errorHandler = new DefaultErrorHandler();
+
         // pick storage adapter
         adapter = switch (cfg.storage.type) {
-            case "file" -> new FileStorageAdapter(new File(cfg.storage.file.path),cfg.retention);
+            case "file" -> new FileStorageAdapter(new File(cfg.storage.file.path),cfg.retention,errorHandler);
             // case "postgres" -> new PostgresStorageAdapter(cfg.storage.postgres);
             // case "kafka" -> new KafkaStorageAdapter(cfg.storage.kafka);
             default -> throw new IllegalArgumentException("Unsupported storage type: " + cfg.storage.type);

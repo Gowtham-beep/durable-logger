@@ -46,4 +46,28 @@ public class LoggerConfig {
         public double rotateSizeMB;
         public int maxDays;
     }
+
+    public void validate(){
+        if (queueCapacity <= 0) throw new IllegalArgumentException("queueCapacity must be > 0");
+        if (maxBatchSize <= 0) throw new IllegalArgumentException("maxBatchSize must be > 0");
+        if (maxBatchMillis <= 0) throw new IllegalArgumentException("maxBatchMillis must be > 0");
+
+        if (wal == null) throw new IllegalArgumentException("wal configuration missing");
+        if (wal.path == null || wal.path.isBlank()) throw new IllegalArgumentException("wal.path must be set");
+        if (wal.checkpoint == null || wal.checkpoint.isBlank()) throw new IllegalArgumentException("wal.checkpoint must be set");
+
+        if (storage == null) throw new IllegalArgumentException("storage configuration missing");
+        if (storage.type == null || storage.type.isBlank()) throw new IllegalArgumentException("storage.type must be set");
+
+        if ("file".equalsIgnoreCase(storage.type)) {
+            if (storage.file == null || storage.file.path == null || storage.file.path.isBlank()) {
+                throw new IllegalArgumentException("storage.file.path must be set for file storage");
+            }
+        }
+        // Additional validations for other adapters can be added here.
+        if (retention != null) {
+            if (retention.rotateSizeMB < 0) throw new IllegalArgumentException("retention.rotateSizeMB must be >= 0");
+            if (retention.maxDays < 0) throw new IllegalArgumentException("retention.maxDays must be >= 0");
+        }
+    }
 }
