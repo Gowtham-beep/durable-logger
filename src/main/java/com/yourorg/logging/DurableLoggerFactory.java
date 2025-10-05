@@ -18,6 +18,9 @@ public class DurableLoggerFactory {
 
     private static DurableLogger durable;
     private static StorageAdapter adapter;
+    public static void initDefault() throws Exception {
+        init("src/main/resources/logger.yml");
+    }
 
     /**
      * Initialize logger using config file.
