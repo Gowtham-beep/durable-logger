@@ -83,18 +83,38 @@ public class FileStorageAdapter implements StorageAdapter {
         }
     }
 
-    private synchronized void rotate() throws Exception {
-        if (closed) return;
-        if (writer != null) {
+    private void rotate() {
+        try {
+            writer.flush();
             writer.close();
-            writer = null;
+
+            // Ensure unique filename using timestamp + counter fallback
+            String rotatedName = file.getPath() + "." + System.currentTimeMillis();
+            Path rotatedPath = Path.of(rotatedName);
+            int counter = 1;
+            while (Files.exists(rotatedPath)) {
+                rotatedPath = Path.of(file.getPath() + "." + System.currentTimeMillis() + "_" + counter++);
+            }
+
+            Files.move(file.toPath(), rotatedPath);
+            System.out.println("[durable-logger] Rotated log file to: " + rotatedPath);
+
+            // Reopen a fresh file for writing
+            writer = new BufferedWriter(new FileWriter(file, true));
+
+        } catch (Exception ex) {
+            System.err.println("[durable-logger] internal error (rotate): " + ex.getMessage());
+            try {
+                // Fallback: reopen file if writer was closed or null
+                if (writer == null) {
+                    writer = new BufferedWriter(new FileWriter(file, true));
+                }
+            } catch (Exception reopenEx) {
+                System.err.println("[durable-logger] reopen failed: " + reopenEx.getMessage());
+            }
         }
-        String rotatedName = file.getPath() + "." + System.currentTimeMillis();
-        Files.move(file.toPath(), Path.of(rotatedName));
-        // start a new writer
-        writer = new BufferedWriter(new FileWriter(file, true));
-        // optionally cleanup old files by retention.maxDays (could be moved to scheduled job)
     }
+
 
     @Override
     public QueryResult query(QueryRequest request) {
